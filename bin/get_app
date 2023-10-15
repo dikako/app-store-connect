@@ -10,8 +10,17 @@ require "date"
 require "open-uri"
 require "zip"
 
-
 options = {}
+
+puts <<~MESSAGE
+  ██████╗ ███████╗████████╗      █████╗ ██████╗ ██████╗
+  ██╔════╝ ██╔════╝╚══██╔══╝     ██╔══██╗██╔══██╗██╔══██╗
+  ██║  ███╗█████╗     ██║        ███████║██████╔╝██████╔╝
+  ██║   ██║██╔══╝     ██║        ██╔══██║██╔═══╝ ██╔═══╝
+  ╚██████╔╝███████╗   ██║███████╗██║  ██║██║     ██║ 
+
+  Author: Fransiskus Andika Setiawan (github.com/dikako)\n
+MESSAGE
 
 parser = OptionParser.new do |parser|
   parser.on("-f", "--file-p8=", "File auth key p8 app store connect")
@@ -158,20 +167,3 @@ Zip::File.open(app_path) do |zip_file|
     entry.extract(File.join(app_folder, entry.name))
   end
 end
-
-# # Check simulator or Real Devices
-# if options[simulator].nil?
-#   app_type = "ipa"
-# else
-#   app_type = "app"
-# end
-#
-# # Check if the source file exists
-# app_source_file = "#{app_folder}/**/*.#{app_type}"
-# app_destination_file = "#{app_folder}/stockbit.#{app_type}"
-# if File.exist?(app_source_file)
-#   # Use FileUtils to move the file
-#   FileUtils.mv(app_source_file, app_destination_file)
-# else
-#   raise "Apps not found!"
-# end
