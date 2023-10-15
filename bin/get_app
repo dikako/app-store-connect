@@ -1,0 +1,177 @@
+#!/usr/bin/env ruby
+
+require "optparse"
+require "base64"
+require "jwt"
+require "httparty"
+require "json"
+require "jsonpath"
+require "date"
+require "open-uri"
+require "zip"
+
+
+options = {}
+
+parser = OptionParser.new do |parser|
+  parser.on("-f", "--file-p8=", "File auth key p8 app store connect")
+  parser.on("-i", "--issuer-id=", "issuer_id app store connect")
+  parser.on("-k", "--key-id=", "key_id app store connect")
+  parser.on("-w", "--workflow=", "workflow on app store connect")
+  parser.on("-d", "--dir=", "Download folder")
+end
+
+parser.parse!(into: options)
+
+file_p8 = "file-p8".to_sym
+issuer_id = "issuer-id".to_sym
+key_id = "key-id".to_sym
+simulator = "simulator".to_sym
+build_workflow_name = "workflow".to_sym
+download_path = "dir".to_sym
+
+required_keys = {
+  file_p8 => "File auth key p8 is required!",
+  issuer_id => "issuer-id is required! ex: 69a61111-e111-4113-e153-5b8c7c00a4d1",
+  key_id => "key-id is required! ex: 0YW000XMBW",
+  build_workflow_name => "workflow is required! ex: Production Build Workflow",
+}
+
+required_keys.each do |key, message|
+  raise "ERROR: #{message}" if options[key].nil?
+end
+
+# Private Key
+private_key = OpenSSL::PKey.read(File.read(options[file_p8]))
+
+# Encode credentials apps store connect
+encode_credentials = JWT.encode(
+  {
+    iss: options[issuer_id],
+    exp: Time.now.to_i + 20 * 60,
+    aud: "appstoreconnect-v1"
+  },
+  private_key,
+  "ES256",
+  header_fields = {
+    kid: options[key_id]
+  }
+)
+
+# Define authorization app store connect
+bearer_token = {
+  Authorization: "Bearer #{encode_credentials}"
+}
+
+get_products = HTTParty.get(
+  "https://api.appstoreconnect.apple.com/v1/ciProducts",
+  headers: bearer_token
+)
+
+unless get_products.code == 200
+  raise get_products.body
+end
+
+workflow_link = JsonPath.new("$.data[?(@.attributes.name == 'Stockbit')].relationships.workflows.links.related").on(get_products.to_s).first
+
+get_workflows = HTTParty.get(
+  workflow_link,
+  headers: bearer_token
+)
+
+build_run_link = JsonPath.new("$.data[?(@.attributes.name == '#{options[build_workflow_name]}')].relationships.buildRuns.links.related").on(get_workflows.to_s).first
+
+get_build_runs = HTTParty.get(
+  "#{build_run_link}?fields[ciProducts]",
+  headers: bearer_token
+)
+
+build_run_finished_dates = JsonPath.new("$.data[?(@.attributes.completionStatus == 'SUCCEEDED')].attributes.finishedDate").on(get_build_runs.to_s)
+
+# Get last build date
+last_build_run_date = build_run_finished_dates.max
+last_build_run_url = JsonPath.new("$.data[?(@.attributes.finishedDate == '#{last_build_run_date}')].relationships.actions.links.related").on(get_build_runs.to_s).first
+
+get_builds = HTTParty.get(
+  last_build_run_url,
+  headers: bearer_token
+)
+
+build_finished_dates = JsonPath.new("$.data[?(@.attributes.completionStatus == 'SUCCEEDED')].attributes.finishedDate").on(get_build_runs.to_s)
+
+# Get last build date
+last_build_date = build_finished_dates.max
+last_build_url = JsonPath.new("$.data[?(@..attributes.finishedDate == '#{last_build_date}')].relationships.artifacts.links.related").on(get_builds.to_s).first
+
+artifacts = HTTParty.get(
+  last_build_url,
+  headers: bearer_token
+)
+
+# ad-hoc or app-store
+artifact_url = JsonPath.new("$.data[?(@.attributes.fileName =~ /app-store/)].links.self").on(artifacts.to_s).first
+
+detail_artifact = HTTParty.get(
+  artifact_url,
+  headers: bearer_token
+)
+
+artifact_filename = JsonPath.new("data.attributes.fileName").on(detail_artifact.to_s).first
+
+# Store app version to file
+file = File.new("version.txt", "w")
+app_version = artifact_filename&.match(/\d+\.\d+\.\d+/)&.[](0) || "0.0.0"
+file.write(app_version)
+
+download_url = JsonPath.new("data.attributes.downloadUrl").on(detail_artifact.to_s).first
+puts download_url
+
+# Check when --dir is null save download to root project
+if options[download_path].nil?
+  app_folder = Dir.pwd
+  file_name = "app.zip"
+else
+  app_folder = options[download_path].match(/(.+\/)/)[1]
+  file_name = options[download_path].match(/[^\/]+$/)[0]
+  FileUtils.mkdir_p(app_folder)
+end
+
+# Download artifact
+app_path = "#{app_folder}#{file_name}"
+response = HTTParty.get(
+  download_url,
+  stream_body: true
+)
+
+if response.code == 200
+  File.open(app_path, 'wb') do |file|
+    file.write(response.body)
+  end
+  puts "File downloaded successfully to #{app_path}"
+else
+  raise "Failed to download file. Response code: #{response.code}"
+end
+
+# Unzip app file
+Zip::File.open(app_path) do |zip_file|
+  zip_file.each do |entry|
+    entry.extract(File.join(app_folder, entry.name))
+  end
+end
+
+# # Check simulator or Real Devices
+# if options[simulator].nil?
+#   app_type = "ipa"
+# else
+#   app_type = "app"
+# end
+#
+# # Check if the source file exists
+# app_source_file = "#{app_folder}/**/*.#{app_type}"
+# app_destination_file = "#{app_folder}/stockbit.#{app_type}"
+# if File.exist?(app_source_file)
+#   # Use FileUtils to move the file
+#   FileUtils.mv(app_source_file, app_destination_file)
+# else
+#   raise "Apps not found!"
+# end

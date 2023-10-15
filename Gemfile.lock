@@ -1,0 +1,41 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    OptionParser (0.5.1)
+    base64 (0.1.1)
+    date (3.3.3)
+    httparty (0.21.0)
+      mini_mime (>= 1.0.0)
+      multi_xml (>= 0.5.2)
+    json (2.6.3)
+    jsonpath (1.1.5)
+      multi_json
+    jwt (2.7.1)
+    mini_mime (1.1.5)
+    multi_json (1.15.0)
+    multi_xml (0.6.0)
+    open-uri (0.3.0)
+      stringio
+      time
+      uri
+    rubyzip (2.3.2)
+    stringio (3.0.8)
+    time (0.2.2)
+      date
+    uri (0.12.2)
+
+PLATFORMS
+  arm64-darwin-22
+
+DEPENDENCIES
+  OptionParser (~> 0.5.1)
+  base64 (~> 0.1.1)
+  httparty (= 0.21.0)
+  json (~> 2.6.3)
+  jsonpath (~> 1.1.2)
+  jwt (~> 2.7, >= 2.7.1)
+  open-uri (~> 0.3.0)
+  rubyzip (~> 2.3, >= 2.3.2)
+
+BUNDLED WITH
+   2.4.20
