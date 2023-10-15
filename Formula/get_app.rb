@@ -3,7 +3,7 @@ class GetApp < Formula
   homepage "https://github.com/dikako/homebrew-app-store-connect"
   version "1.0.0"
 
-  url "https://github.com/dikako/homebrew-app-store-connect/archive/main.zip", :using => :curl
+  url "https://github.com/dikako/homebrew-app-store-connect/archive/refs/tags/1.0.zip", :using => :curl
 
   def install
     bin.install "bin/get_app"
