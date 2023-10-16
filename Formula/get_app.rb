@@ -1,34 +1,23 @@
 class GetApp < Formula
   desc "Get app from app store connect"
   homepage "https://github.com/dikako/homebrew-app-store-connect"
-  version "1.3"
+  version "1.4"
 
-  url "https://github.com/dikako/homebrew-app-store-connect/archive/refs/tags/1.3.zip", :using => :curl
+  url "https://github.com/dikako/homebrew-app-store-connect/archive/refs/tags/1.4.zip", :using => :curl
+
+  depends_on "ruby@3" # Use Ruby 3 as a dependency
 
   def install
-    ruby_version = system("ruby -v")
-    if ruby_version.nil?
-      # Install rbenv
-      system("echo 'install rbenv and ruby-3.0.0'")
-      system("git clone https://github.com/rbenv/rbenv.git ~/.rbenv")
-      system("echo 'eval \"$(~/.rbenv/bin/rbenv init - zsh)\"' >> ~/.zshrc")
-      system("rbenv install 3.0.0")
-      system("rbenv global 3.1.2")
-      system("gem install bundler")
-      system("bundle install")
-    else
-      system("echo 'Already install #{ruby_version}'")
-      unless ruby_version =~ "3"
-        system("echo 'install rbenv and ruby-3.0.0'")
-        system("git clone https://github.com/rbenv/rbenv.git ~/.rbenv")
-        system("echo 'eval \"$(~/.rbenv/bin/rbenv init - zsh)\"' >> ~/.zshrc")
-        system("rbenv install 3.0.0")
-        system("rbenv global 3.1.2")
-        system("gem install bundler")
-        system("bundle install")
-      end
+    # Check if Ruby 3 is not installed
+    unless system("#{Formula["ruby@3"].opt_bin}/ruby --version | grep 'ruby 3'")
+      opoo "Ruby 3 is not installed. Installing Ruby 3..."
+      system "brew install ruby@3"
     end
 
     bin.install "bin/get_app"
+  end
+
+  test do
+    system "#{bin}/get_app", "--version"
   end
 end
