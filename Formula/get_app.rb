@@ -1,28 +1,33 @@
 class GetApp < Formula
   desc "Get app from app store connect"
   homepage "https://github.com/dikako/homebrew-app-store-connect"
-  version "1.0.0"
+  version "1.3"
 
-  url "https://github.com/dikako/homebrew-app-store-connect/archive/refs/tags/1.2.zip", :using => :curl
+  url "https://github.com/dikako/homebrew-app-store-connect/archive/refs/tags/1.3.zip", :using => :curl
 
   def install
-    # Install rbenv
-    system "brew", "install", "rbenv"
-
-    # Set up rbenv
-    system "rbenv", "init", "-"
-
-    # Install a specific version of Ruby using rbenv
-    system "rbenv", "install", "3.0.0" # Replace with the desired Ruby version
-
-    # Set the global Ruby version
-    system "rbenv", "global", "3.0.0" # Make sure to use the same Ruby version as above
-
-    # Install a required gem using the system's Ruby
-    system "gem", "install", "bundler"
-
-    # Install dependencies
-    system "bundle", "install"
+    ruby_version = system("ruby -v")
+    if ruby_version.nil?
+      # Install rbenv
+      system("echo 'install rbenv and ruby-3.0.0'")
+      system("git clone https://github.com/rbenv/rbenv.git ~/.rbenv")
+      system("echo 'eval \"$(~/.rbenv/bin/rbenv init - zsh)\"' >> ~/.zshrc")
+      system("rbenv install 3.0.0")
+      system("rbenv global 3.1.2")
+      system("gem install bundler")
+      system("bundle install")
+    else
+      system("echo 'Already install #{ruby_version}'")
+      unless ruby_version =~ "3"
+        system("echo 'install rbenv and ruby-3.0.0'")
+        system("git clone https://github.com/rbenv/rbenv.git ~/.rbenv")
+        system("echo 'eval \"$(~/.rbenv/bin/rbenv init - zsh)\"' >> ~/.zshrc")
+        system("rbenv install 3.0.0")
+        system("rbenv global 3.1.2")
+        system("gem install bundler")
+        system("bundle install")
+      end
+    end
 
     bin.install "bin/get_app"
   end
