@@ -30,6 +30,12 @@ you will help support:
 
 ### Install binary
 
+- ``brew install ruby@3``
+- ``gem install jwt``
+- ``gem install httparty``
+- ``gem install json``
+- ``gem install jsonpath``
+- ``gem install rubyzip``
 - ``brew tap dikako/app-store-connect``
 - ``brew install get_app``
 
