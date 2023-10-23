@@ -28,6 +28,7 @@ parser = OptionParser.new do |parser|
   parser.on("-k", "--key-id=", "key_id app store connect")
   parser.on("-w", "--workflow=", "workflow on app store connect")
   parser.on("-d", "--dir=", "Download folder")
+  parser.on("-a", "--art=", "Artifact filter by file name")
 end
 
 parser.parse!(into: options)
@@ -38,6 +39,7 @@ key_id = "key-id".to_sym
 simulator = "simulator".to_sym
 build_workflow_name = "workflow".to_sym
 download_path = "dir".to_sym
+artifact_filter = "art".to_sym
 
 required_keys = {
   file_p8 => "File auth key p8 is required!",
@@ -91,7 +93,7 @@ get_workflows = HTTParty.get(
 build_run_link = JsonPath.new("$.data[?(@.attributes.name == '#{options[build_workflow_name]}')].relationships.buildRuns.links.related").on(get_workflows.to_s).first
 
 get_build_runs = HTTParty.get(
-  "#{build_run_link}?fields[ciProducts]",
+  "#{build_run_link}?fields[ciProducts]&limit=200",
   headers: bearer_token
 )
 
@@ -118,7 +120,7 @@ artifacts = HTTParty.get(
 )
 
 # ad-hoc or app-store
-artifact_url = JsonPath.new("$.data[?(@.attributes.fileName =~ /app-store/)].links.self").on(artifacts.to_s).first
+artifact_url = JsonPath.new("$.data[?(@.attributes.fileName =~ /#{options[artifact_filter]}/)].links.self").on(artifacts.to_s).first
 
 detail_artifact = HTTParty.get(
   artifact_url,
