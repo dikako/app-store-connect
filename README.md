@@ -41,12 +41,12 @@ you will help support:
 
 ## Usage
 ```
-get_app --file-p8=$AUTH_KEY --issuer-id=$ISSUER_ID --key-id=$KEY_ID --workflow="$WORKFLOW NAME" --art="$ART"
+get_app --file-p8=$AUTH_KEY --issuer-id=$ISSUER_ID --key-id=$KEY_ID --workflow="$WORKFLOW_NAME" --art="$ART"
 
 --file-p8                           File AUTH_KEY generated from app store connect (Required) ex: XXXXXXX_XXXXXXXXXX.p8              
 --issuer-id                         ISSUER_ID generated from app store connect (Required) ex: 00x0dx0x-x0x0-00x00-x000-0x0x0x00x0x0               
 --key-id                            KEY_ID generated from app store connect (Required) ex: 0XX000XXX             
---workflow                          KEY_ID generated from app store connect (Required) ex: Production Build           
+--workflow                          $WORKFLOW_NAME generated from app store connect (Required) ex: Production Build           
 --dir                               DIR generated from app store connect (Optional) ex: app         
 ```
 
