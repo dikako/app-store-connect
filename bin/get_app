@@ -9,8 +9,6 @@ require "jsonpath"
 require "date"
 require "open-uri"
 require "zip"
-require "find"
-require "plist"
 
 options = {}
 

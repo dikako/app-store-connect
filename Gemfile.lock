@@ -18,7 +18,6 @@ GEM
       stringio
       time
       uri
-    plist (3.7.0)
     rubyzip (2.3.2)
     stringio (3.0.9)
     time (0.3.0)
@@ -36,7 +35,6 @@ DEPENDENCIES
   jsonpath (~> 1.1.2)
   jwt (~> 2.7, >= 2.7.1)
   open-uri (~> 0.3.0)
-  plist (~> 3.7)
   rubyzip (~> 2.3, >= 2.3.2)
 
 BUNDLED WITH
