@@ -9,17 +9,14 @@ require "jsonpath"
 require "date"
 require "open-uri"
 require "zip"
+require "find"
+require "plist"
 
 options = {}
 
 puts <<~MESSAGE
-  ██████╗ ███████╗████████╗      █████╗ ██████╗ ██████╗
-  ██╔════╝ ██╔════╝╚══██╔══╝     ██╔══██╗██╔══██╗██╔══██╗
-  ██║  ███╗█████╗     ██║        ███████║██████╔╝██████╔╝
-  ██║   ██║██╔══╝     ██║        ██╔══██║██╔═══╝ ██╔═══╝
-  ╚██████╔╝███████╗   ██║███████╗██║  ██║██║     ██║ 
-
-  Author: Fransiskus Andika Setiawan (github.com/dikako)\n
+  Get app from app store connect
+  Author: github.com/dikako\n
 MESSAGE
 
 parser = OptionParser.new do |parser|
@@ -36,7 +33,6 @@ parser.parse!(into: options)
 file_p8 = "file-p8".to_sym
 issuer_id = "issuer-id".to_sym
 key_id = "key-id".to_sym
-simulator = "simulator".to_sym
 build_workflow_name = "workflow".to_sym
 download_path = "dir".to_sym
 artifact_filter = "art".to_sym
@@ -129,13 +125,8 @@ detail_artifact = HTTParty.get(
 
 artifact_filename = JsonPath.new("data.attributes.fileName").on(detail_artifact.to_s).first
 
-# Store app version to file
-file = File.new("version.txt", "w")
-app_version = artifact_filename&.match(/\d+\.\d+\.\d+/)&.[](0) || "0.0.0"
-file.write(app_version)
-
 download_url = JsonPath.new("data.attributes.downloadUrl").on(detail_artifact.to_s).first
-puts download_url
+puts "Download url: #{download_url}"
 
 # Check when --dir is null save download to root project
 if options[download_path].nil?
@@ -149,6 +140,8 @@ end
 
 # Download artifact
 app_path = "#{app_folder}#{file_name}"
+
+puts "Downloading app..."
 response = HTTParty.get(
   download_url,
   stream_body: true
@@ -169,3 +162,19 @@ Zip::File.open(app_path) do |zip_file|
     entry.extract(File.join(app_folder, entry.name))
   end
 end
+
+# Store app version to file
+file = File.new("version.txt", "w")
+app_version = artifact_filename&.match(/\d+\.\d+\.\d+/)&.[](0)
+
+if app_version.nil?
+  project_dir = Dir.pwd
+  simulator_app = Dir[File.join(project_dir, '**', '*.app')]
+  simulator_app = simulator_app.join(' ') unless simulator_app.empty?
+
+  info_plist_path = "#{simulator_app}/Info.plist"
+  app_version = `/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "#{info_plist_path}"`.strip
+end
+
+file.write(app_version)
+file.close
