@@ -6,6 +6,10 @@
 
 **get_app** is a command line application for get app from App Store Connect using api.
 
+## Feature
+- Download newest .ipa or .app from app store connect with specific workflow name and artifact name
+- Get app .ipa or .app version and save to version.txt file
+
 ## Community
 
 --
