@@ -21,6 +21,7 @@ parser = OptionParser.new do |parser|
   parser.on("-f", "--file-p8=", "File auth key p8 app store connect")
   parser.on("-i", "--issuer-id=", "issuer_id app store connect")
   parser.on("-k", "--key-id=", "key_id app store connect")
+  parser.on("-p", "--product=", "product name")
   parser.on("-w", "--workflow=", "workflow on app store connect")
   parser.on("-d", "--dir=", "Download folder")
   parser.on("-a", "--art=", "Artifact filter by file name")
@@ -31,6 +32,7 @@ parser.parse!(into: options)
 file_p8 = "file-p8".to_sym
 issuer_id = "issuer-id".to_sym
 key_id = "key-id".to_sym
+product_name = "product".to_sym
 build_workflow_name = "workflow".to_sym
 download_path = "dir".to_sym
 artifact_filter = "art".to_sym
@@ -39,6 +41,7 @@ required_keys = {
   file_p8 => "File auth key p8 is required!",
   issuer_id => "issuer-id is required! ex: 69a61111-e111-4113-e153-5b8c7c00a4d1",
   key_id => "key-id is required! ex: 0YW000XMBW",
+  product_name => "product name is required! ex: myapp",
   build_workflow_name => "workflow is required! ex: Production Build Workflow",
 }
 
@@ -77,7 +80,9 @@ unless get_products.code == 200
   raise get_products.body
 end
 
-workflow_link = JsonPath.new("$.data[?(@.attributes.name == 'Stockbit')].relationships.workflows.links.related").on(get_products.to_s).first
+puts get_products.body
+
+workflow_link = JsonPath.new("$.data[?(@.attributes.name == '#{options[product_name]}')].relationships.workflows.links.related").on(get_products.to_s).first
 
 get_workflows = HTTParty.get(
   workflow_link,
