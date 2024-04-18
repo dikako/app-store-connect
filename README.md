@@ -43,6 +43,12 @@ you will help support:
 - ``brew tap dikako/app-store-connect``
 - ``brew install get_app``
 
+### Update binary
+- ``brew uninstall get_app``
+- ``brew untap dikako/app-store-connect``
+- ``brew tap dikako/app-store-connect``
+- ``brew install get_app``
+
 ## Usage
 ```
 get_app --file-p8=$AUTH_KEY --issuer-id=$ISSUER_ID --key-id=$KEY_ID --product=$PRODUCT_NAME --workflow="$WORKFLOW_NAME" --art="$ART"
