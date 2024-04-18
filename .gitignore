@@ -1,0 +1,5 @@
+version.txt
+*.p8
+.env
+auth.json
+.idea

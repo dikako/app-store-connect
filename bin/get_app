@@ -80,56 +80,122 @@ unless get_products.code == 200
   raise get_products.body
 end
 
-puts get_products.body
+list_product = JsonPath.new("$.data[?(@.attributes.productType == 'APP')].attributes.name").on(get_products)
+input_product = options[product_name]
 
-workflow_link = JsonPath.new("$.data[?(@.attributes.name == '#{options[product_name]}')].relationships.workflows.links.related").on(get_products.to_s).first
+puts <<~INFO
+  Success get list product!
+  Product found: #{list_product.join(", ")}
+
+  ** You choose '#{input_product}' product. **
+INFO
+
+workflow_link = JsonPath.new("$.data[?(@.attributes.name == '#{input_product}')].relationships.workflows.links.related").on(get_products).first
 
 get_workflows = HTTParty.get(
-  workflow_link,
+  "#{workflow_link}",
   headers: bearer_token
 )
 
-build_run_link = JsonPath.new("$.data[?(@.attributes.name == '#{options[build_workflow_name]}')].relationships.buildRuns.links.related").on(get_workflows.to_s).first
+unless get_workflows.code == 200
+  raise get_workflows.body
+end
+
+list_workflow = JsonPath.new("$.data[?(@.attributes.isEnabled == true)].attributes.name").on(get_workflows)
+input_workflow_name = options[build_workflow_name]
+
+puts <<~INFO
+  Success get list workflow!
+  List active workflow: #{list_workflow.join(", ")}
+
+  ** You choose '#{input_workflow_name}' workflow. **
+INFO
+
+build_run_link = JsonPath.new("$.data[?(@.attributes.name == '#{input_workflow_name}')].relationships.buildRuns.links.related").on(get_workflows).first
 
 get_build_runs = HTTParty.get(
   "#{build_run_link}?fields[ciProducts]&limit=200",
   headers: bearer_token
 )
 
-build_run_finished_dates = JsonPath.new("$.data[?(@.attributes.completionStatus == 'SUCCEEDED')].attributes.finishedDate").on(get_build_runs.to_s)
+unless get_build_runs.code == 200
+  raise get_build_runs.body
+end
 
 # Get last build date
+build_run_finished_dates = JsonPath.new("$.data[?(@.attributes.completionStatus == 'SUCCEEDED')].attributes.finishedDate").on(get_build_runs)
 last_build_run_date = build_run_finished_dates.max
-last_build_run_url = JsonPath.new("$.data[?(@.attributes.finishedDate == '#{last_build_run_date}')].relationships.actions.links.related").on(get_build_runs.to_s).first
+last_build_run_url = JsonPath.new("$.data[?(@.attributes.finishedDate == '#{last_build_run_date}')].relationships.actions.links.related").on(get_build_runs).first
+
+puts <<~INFO
+  Success get list build run!
+  Found '#{build_run_finished_dates.length}' build run.
+
+  ** Get latest build date '#{Time.parse(last_build_run_date.to_s).strftime("%A, %B %d, %Y %I:%M%p")}'. **
+INFO
 
 get_builds = HTTParty.get(
   last_build_run_url,
   headers: bearer_token
 )
 
-build_finished_dates = JsonPath.new("$.data[?(@.attributes.completionStatus == 'SUCCEEDED')].attributes.finishedDate").on(get_build_runs.to_s)
+unless get_builds.code == 200
+  raise get_builds.body
+end
+
+build_finished_dates = JsonPath.new("$.data[?(@.attributes.completionStatus == 'SUCCEEDED')].attributes.finishedDate").on(get_build_runs)
 
 # Get last build date
 last_build_date = build_finished_dates.max
-last_build_url = JsonPath.new("$.data[?(@..attributes.finishedDate == '#{last_build_date}')].relationships.artifacts.links.related").on(get_builds.to_s).first
+last_build_url = JsonPath.new("$.data[?(@..attributes.finishedDate == '#{last_build_date}')].relationships.artifacts.links.related").on(get_builds).first
+
+puts <<~INFO
+  Success get list build link!
+  Found '#{build_finished_dates.length}' build.
+
+  ** Get latest link build date '#{Time.parse(last_build_date.to_s).strftime("%A, %B %d, %Y %I:%M%p")}'. **
+  ** Get latest link build '#{last_build_url}'. **
+INFO
 
 artifacts = HTTParty.get(
   last_build_url,
   headers: bearer_token
 )
 
-# ad-hoc or app-store
-artifact_url = JsonPath.new("$.data[?(@.attributes.fileName =~ /#{options[artifact_filter]}/)].links.self").on(artifacts.to_s).first
+unless artifacts.code == 200
+  raise artifacts.body
+end
+
+input_artifact_filter = options[artifact_filter]
+artifact_file = JsonPath.new("$.data[*].attributes.fileName").on(artifacts)
+artifact_url = JsonPath.new("$.data[?(@.attributes.fileName =~ /#{input_artifact_filter}/)].links.self").on(artifacts).first
+
+puts <<~INFO
+  Success get list artifact!
+  Found list artifact file: #{artifact_file.join(", ")}
+
+  ** You choose '#{input_artifact_filter}' artifact. **
+  ** Artifact link '#{artifact_url}'. **
+INFO
 
 detail_artifact = HTTParty.get(
   artifact_url,
   headers: bearer_token
 )
 
-artifact_filename = JsonPath.new("data.attributes.fileName").on(detail_artifact.to_s).first
+unless detail_artifact.code == 200
+  raise detail_artifact.body
+end
 
-download_url = JsonPath.new("data.attributes.downloadUrl").on(detail_artifact.to_s).first
-puts "Download url: #{download_url}"
+artifact_filename = JsonPath.new("data.attributes.fileName").on(detail_artifact).first
+download_url = JsonPath.new("data.attributes.downloadUrl").on(detail_artifact).first
+
+puts <<~INFO
+  Success get download artifact link!
+
+  ** Artifact file name '#{artifact_filename}'. **
+  ** Download link '#{download_url}'. **
+INFO
 
 # Check when --dir is null save download to root project
 if options[download_path].nil?
@@ -145,21 +211,14 @@ end
 app_path = "#{app_folder}#{file_name}"
 
 puts "Downloading app..."
-response = HTTParty.get(
-  download_url,
-  stream_body: true
-)
-
-if response.code == 200
-  File.open(app_path, 'wb') do |file|
-    file.write(response.body)
+File.open(app_path, "wb") do |file|
+  HTTParty.get(download_url, stream_body: true) do |fragment|
+    file.write(fragment)
   end
-  puts "File downloaded successfully to #{app_path}"
-else
-  raise "Failed to download file. Response code: #{response.code}"
 end
 
 # Unzip app file
+puts "Unzip file..."
 Zip::File.open(app_path) do |zip_file|
   zip_file.each do |entry|
     entry.extract(File.join(app_folder, entry.name))
@@ -167,6 +226,7 @@ Zip::File.open(app_path) do |zip_file|
 end
 
 # Store app version to file
+puts "Get App version..."
 file = File.new("version.txt", "w")
 app_version = artifact_filename&.match(/\d+\.\d+\.\d+/)&.[](0)
 
@@ -178,6 +238,8 @@ if app_version.nil?
   info_plist_path = "#{simulator_app}/Info.plist"
   app_version = `/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "#{info_plist_path}"`.strip
 end
+
+puts "App version: #{app_version}"
 
 file.write(app_version)
 file.close
